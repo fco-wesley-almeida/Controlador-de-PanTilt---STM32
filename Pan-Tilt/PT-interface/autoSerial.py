@@ -6,6 +6,7 @@
 import serial
 import os
 import time
+import math
 
 # Definição de constante
 __BAUD_RATE__ = 9600
@@ -21,7 +22,6 @@ def activePort():
         except:
             continue
     return ''
-
 
 #  Função degrau
 def u(t):
@@ -44,12 +44,13 @@ def fVertStep(t):
         return 0
     
 # Verifica se existe alguma porta ativa
-def walk(_port, cicles):
-    for i in range(cicles):
-        horizontal_angle = 0
-        vertical_angle = 0
-        for t in range(42):
-            try:
+def walk(_port):
+    if (_port != ''):
+        while(True):
+            horizontal_angle = 0
+            vertical_angle = 0
+            for t in range(42):
+            
                 time.sleep(0.2)
                 horizontal_angle += fHorizStep(t)
                 vertical_angle   += fVertStep(t)
@@ -59,59 +60,12 @@ def walk(_port, cicles):
                 answer = str(serial.readline())
                 answer = answer[2: len(answer) - 3]
                 print(answer)
-            except:
-                print ("Communication error in port " + _port + ".")
-                return False
-    return True
-
-# Rotina principal
-def program(_port):
-    
-    if (_port != ''):
-        thisTitle = "SERIAL COMMUNICATION BY PORT " + _port 
-        os.system("title " + thisTitle)
-        # Rotina principal do programa
-        while(True):
-            os.system("cls")
-            print ("********",thisTitle,"********\n")
-
-            data = input("Enter the data to be sent by serial: ")
-            
-            if(data != 'out' and not data.startswith("auto")):
-                try:
-                    serial.write((data+"\n").encode())
-                    answer = serial.readline()
-                    
-                    print("Data sent:", data) 
-                    print("Answer   :", answer)
-                    input()
-
-                except: # O programa entrará nessa exceção se a porta for desconectada, 
-                        # ou seja, quando a conexão for interrompida.
-                    print ("Communication error in port " + _port + ".")
-                    break;
-            
-            elif(data == 'out'):
-                serial.close()
-                break
-
-            elif(data.startswith("auto")):
-                cicles = int(input("Enter how many drill cycles will be done: "))
-                print("")
-                if (walk(_port, cicles) == False):
-                    serial.close()
-                    break
-
     else: # Se não existir nenhuma porta ativa, então o programa é encerrado.
         print("No port found!")
-    print("END!")
 
 _port = activePort()
 serial = serial.Serial(_port, __BAUD_RATE__)
-try:
-    program(_port)
-except:
-    print("END!")
+walk(_port)
 
     
 

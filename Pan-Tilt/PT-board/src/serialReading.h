@@ -6,15 +6,22 @@
 #ifndef __SERIALHEADING_H__
 #define __SERIALHEADING_H__
 
-// Definições de macro
+// Definições de macro e constantes
 #define angleIsValid(a)                    (a >= 0 && a <= 180)
 #define isNum(c)                           (c >= '0' && c <= '9')
 #define cleanSerialBuffer(initialPosition) for(int l = initialPosition; l < bytesToRead; l++) Serial.read()
 
+// Definições de constantes
+#define NO_ERROR            0 
+#define FORMATTING_ERROR   1
+#define INVALID_ANGLE_ERROR 2
+
+
 // Estruturas 
 struct SerialCommand {
   int arguments[2];
-  int wasProcessed;
+  int isBeingProcessed;
+  int error;
 };
 typedef struct SerialCommand SerialCommand;
 
@@ -27,26 +34,29 @@ int readSerial (SerialCommand* serialCommand, int bytesToRead);
    estabelecido. A string lida da serial deve ser do tipo (a,b), ou seja, começando e ter-
    minando com parênteses e com uma única vírgula separando os argumentos numéricos a e b.
 */  
-int charIsValid(int i, int bytesToRead, int tempChar, int qComma)
+int charIsValid(SerialCommand* serialCommand, int i, int bytesToRead, int tempChar, int qComma)
 {
+  int isValid;
   switch(tempChar)
   {
     case '(':
-      return (i == 0);
+      isValid = (i == 0);
       break;
     
     case ')':
-      return (i == bytesToRead - 2);
+      isValid = (i == bytesToRead - 2);
       break;
 
     case ',':
-      return ((qComma <= 1) && (i != 1) && (i != bytesToRead - 3));
+      isValid = ((qComma <= 1) && (i != 1) && (i != bytesToRead - 3));
       break;
 
     default:
-      return (isNum(tempChar) && (i != 0) && (i != bytesToRead - 2));
+      isValid = ((isNum(tempChar)) && (i != 0) && (i != bytesToRead - 2));
       break;
   }
+  serialCommand -> error = isValid ? NO_ERROR : FORMATTING_ERROR;
+  return (isValid);
 }
 
 /* 
@@ -57,9 +67,10 @@ int readSerial (SerialCommand* serialCommand, int bytesToRead)
 { 
   if (bytesToRead)
   { 
-    serialCommand -> wasProcessed = 1;
+    serialCommand -> isBeingProcessed = 1;
     if(!(bytesToRead >= 6 && bytesToRead <= 10))
     {
+      serialCommand -> error = FORMATTING_ERROR;
       cleanSerialBuffer(0);
       return 0;
     }  
@@ -79,7 +90,7 @@ int readSerial (SerialCommand* serialCommand, int bytesToRead)
         if (tempChar == ',')
           qComma++;
         
-        if (charIsValid(i, bytesToRead, tempChar, qComma))
+        if (charIsValid(serialCommand, i, bytesToRead, tempChar, qComma))
         {
           if (i == 1)
             readingArg_0 = 1;
@@ -105,12 +116,17 @@ int readSerial (SerialCommand* serialCommand, int bytesToRead)
       
       if (i < bytesToRead - 1)
         return 0;
-
       else
       {
         serialCommand -> arguments[0] = atoi(arg_0);
         serialCommand -> arguments[1] = atoi(arg_1);
-        return (angleIsValid(serialCommand -> arguments[0]) && angleIsValid(serialCommand -> arguments[1]));
+        if(angleIsValid(serialCommand -> arguments[0]) && angleIsValid(serialCommand -> arguments[1]))
+          return 1;
+        else
+        {
+          serialCommand -> error = INVALID_ANGLE_ERROR;
+          return 0;
+        }
       }
     }
   }

@@ -43,7 +43,7 @@ def fVertStep(t):
     else:
         return 0
     
-# Verifica se existe alguma porta ativa
+# Caminhar automático do panTilt
 def walk(_port, cicles):
     for i in range(cicles):
         horizontal_angle = 0
@@ -77,7 +77,7 @@ def program(_port):
 
             data = input("Enter the data to be sent by serial: ")
             
-            if(data != 'out' and not data.startswith("auto")):
+            if(data != 'out' and data != 'auto'):
                 try:
                     serial.write((data+"\n").encode())
                     answer = serial.readline()
@@ -95,7 +95,7 @@ def program(_port):
                 serial.close()
                 break
 
-            elif(data.startswith("auto")):
+            elif(data == 'auto'):
                 cicles = int(input("Enter how many drill cycles will be done: "))
                 print("")
                 if (walk(_port, cicles) == False):
